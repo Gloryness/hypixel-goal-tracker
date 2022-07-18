@@ -26,10 +26,6 @@ A desktop application to track anything on the Hypixel Network.
 <img src="images/stats2.png">
 <img src="images/stats3.png">
 
-## 🔗 Links
-- [`Bot Invite`]
-- [`Discord`]
-
 <!-- LINKS -->
 [`python`]: https://www.python.org/
 [`pip`]: https://pip.pypa.io/en/stable/installation/
