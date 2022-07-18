@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="images/logo.png" width="20%" alt="Hypixel Goal Tracker Logo">
+<img src="images/banner.png" width="20%" alt="Hypixel Goal Tracker Logo">
 
-# Questify
+# Hypixel Goal Tracker
 A desktop application to track anything on the Hypixel Network.
 
 </div>
