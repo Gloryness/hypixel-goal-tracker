@@ -7,10 +7,11 @@ from packaging import version
 import subprocess
 import threading
 import requests
+import sys
 import os
 import re
 
-from app import path, convert_to_time, __version__
+from app import path, convert_to_time, __version__, is_executable
 from app.cache import Cache
 from gui.setup import Setup
 from gui.extract_info import Extractor
@@ -426,7 +427,7 @@ class Main(QMainWindow):
             try:
                 module_path = self.cache.folder+"\\pending\\Hypixel Goal Tracker Updater.exe"
                 module_path = module_path.replace("\\", "\\\\")
-                subprocess.call(f"wmic process where ExecutablePath='{module_path}' delete")
+                subprocess.call(f"wmic process where ExecutablePath='{module_path}' delete", shell=True)
             except:
                 pass
             try:
@@ -453,15 +454,15 @@ class Main(QMainWindow):
                 import traceback
                 print(traceback.format_exc())
 
-        thread = threading.Thread(target=func)
-        thread.start()
+        if is_executable: # Only auto-updating if using the executable.
+            thread = threading.Thread(target=func)
+            thread.start()
 
-        checking = UpdateCheck()
-        checking.exec_()
+            checking = UpdateCheck()
+            checking.exec_()
 
-        if quit_:
-            quit()
-            return
+            if quit_:
+                sys.exit()
 
         self.ui.name_label.setText("Name")
         self.ui.goal_label.setText("Goal")
@@ -487,8 +488,7 @@ class Main(QMainWindow):
             cache = self.cache.all()
 
         if 'uuid' not in cache or 'api-key' not in cache:
-            quit()
-            return
+            sys.exit()
 
         self.goals = []
         self.completed_goals = self.cache.get('completed_goals')
