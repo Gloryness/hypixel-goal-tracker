@@ -170,7 +170,7 @@ class GoalManager:
                         except: current_amount = data['current_amount'] if 'current_amount' in data else 0
                 else:
                     try:
-                        current_amount = processManuals(data['api_goal_name'], data['api_gamemode_name'], api_sync)
+                        current_amount = processManuals(data['api_goal_name'], data['api_gamemode_name'], api)
                     except:
                         current_amount = data['current_amount'] if 'current_amount' in data else 0
 
@@ -191,6 +191,8 @@ class GoalManager:
                         percentage = round(current_amount * calc, 2)
                         if (current_amount * calc) < 100 and (current_amount * calc) > 99.99:
                             percentage = 99.99
+                        if percentage >= 100:
+                            percentage = 100.0
                         percentage_str = f"({percentage})%"
                     else:
                         data['mid_amount'] = current_amount - data['starting_amount']
@@ -201,6 +203,8 @@ class GoalManager:
                         percentage = round(data['mid_amount'] * calc, 2)
                         if (data['mid_amount'] * calc) < 100 and (data['mid_amount'] * calc) > 99.99:
                             percentage = 99.99
+                        if percentage >= 100:
+                            percentage = 100.0
                         percentage_str = f"({percentage})%"
 
                 try:

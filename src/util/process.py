@@ -143,7 +143,6 @@ def processProgress(data, progress_design=False):
             outOf[1] = f"{outOf[1]:,}"
         outOf[0] = f"{outOf[0]:,}"
 
-
     return ' / '.join(outOf)
 
 def computeHtml(text):
