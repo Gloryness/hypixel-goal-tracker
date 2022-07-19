@@ -82,12 +82,6 @@ def processManuals(goal, gamemode, api):
         add = summarise(*goal)
         return add.result(player)
 
-    elif goal == "killsQuake":
-        player = api.player_stats['stats']['Quake']
-        solo_kills = player['kills']
-        team_kills = player['kills_teams']
-        return solo_kills + team_kills
-
     elif goal in ['fortune', 'superluck', 'endurance', 'transfusion', 'godfather', 'headstart', 'adrenaline']:
         player = api.player_stats['stats']['Paintball']
         return player[goal]+1

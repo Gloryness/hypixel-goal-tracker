@@ -14,10 +14,13 @@ class NameLineEdit(QLineEdit):
         self.win = win
 
     def keyPressEvent(self, event):
-        QLineEdit.keyPressEvent(self, event)
+        if event != "":
+            QLineEdit.keyPressEvent(self, event)
         if len(self.text().strip()) >= 1:
             self.win.dialog.data['name'] = self.text().strip()
-            if len(self.win.goal_amount.text().strip()) >= 1 and len(self.win.goal_label.text()) > 46:
+            if len(self.win.goal_amount.text().strip()) >= 1 and len(self.win.goal_label.text()) > 46 and (self.win.milestone.isChecked() and not self.win.goal_amount_info.isVisible()):
+                self.win.done.setEnabled(True)
+            if self.win.infiniteGoalCheck.isChecked() and self.win.current_amount.isVisible():
                 self.win.done.setEnabled(True)
             if self.win.gamemode_label.isEnabled() and len(self.win.goal_label.text().strip()) >= 47:
                 self.win.current_amount.setVisible(True)
@@ -46,7 +49,8 @@ class GoalLineEdit(QLineEdit):
         self.win = win
 
     def keyPressEvent(self, event):
-        QLineEdit.keyPressEvent(self, event)
+        if event != "":
+            QLineEdit.keyPressEvent(self, event)
         if self.win.dialog.data['api_goal_name'] == "networkExpp":
             cls = float
         else:
@@ -134,6 +138,9 @@ class GoalLineEdit(QLineEdit):
                 self.win.done.setEnabled(False)
             elif self.win.dialog.data['api_goal_name'] == "pit_level" and self.win.dialog.data['current_amount']+cls(self.text()) <= 120 and cls(self.text()) != 0:
                 self.win.done.setEnabled(True)
+
+        if self.win.name.text() == "":
+            self.win.done.setEnabled(False)
 
 class GamemodeToolButton(QToolButton):
     def __init__(self, win, parent):
@@ -269,7 +276,7 @@ class SortByAction(QAction):
     def clicked(self):
         self.win.ui.sort_by_option.setText(self.text())
         self.win.goal_organiser['sort_by'] = self.text()
-        self.win.unpack(self.win.completed_goals, sorted_key=self.text().lower().replace(" ", "_"))
+        self.win.unpack(self.win.completed_goals, sorted_key=self.text().lower().replace(" ", "_") if self.text() != "Ended With" else "goal")
 
 class UsernameCheckBox(QCheckBox):
     def __init__(self, win, parent):
@@ -571,6 +578,9 @@ class InfiniteGoalCheckBox(QCheckBox):
             self.win.goal_amount.setEnabled(False)
             self.win.goal_amount.setText('∞')
             self.win.dialog.data['goal_amount'] = 'infinite'
+
+            if self.win.current_amount.isVisible() and len(self.win.name.text()) >= 1:
+                self.win.done.setEnabled(True)
         else:
             self.win.milestone.setDisabled(False)
             self.win.goal_amount_info.setText(self.previous_milestone_text)
@@ -578,9 +588,9 @@ class InfiniteGoalCheckBox(QCheckBox):
             self.win.goal_amount.setEnabled(self.previous_goal_amount_enabled)
             self.win.goal_amount.setText(self.previous_goal_amount)
             self.win.done.setEnabled(self.previous_done_enabled)
-            if len(self.previous_goal_amount) == 0:
-                self.win.done.setEnabled(False)
             self.win.dialog.data['goal_amount'] = self.previous_goal_amount_data
+            self.win.name.keyPressEvent("")
+            self.win.goal_amount.keyPressEvent("")
 
 class InfiniteDurationCheckBox(QCheckBox):
     def __init__(self, win, parent):
