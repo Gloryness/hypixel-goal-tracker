@@ -55,17 +55,18 @@ class GoalLineEdit(QLineEdit):
             cls = float
         else:
             cls = int
-        if (re.match('\d+', self.text()) or re.match('\d+\.\d+', self.text())) and hasattr(self.win.dialog, 'value') and self.win.milestone.isChecked():
+        text = self.text().replace(",", "")
+        if (re.fullmatch('\d+', text) or re.fullmatch('\d+\.\d+', text)) and hasattr(self.win.dialog, 'value') and self.win.milestone.isChecked():
             if self.win.current_amount.text().__contains__("Failed to get player stats."):
                 self.clear()
                 return
 
-            if cls(self.text()) <= self.win.dialog.value:
+            if cls(text) <= self.win.dialog.value:
                 self.win.goal_amount_info.setText("<html><head/><body><p><span style=\" font-size:8pt; color:#d90000;\">Must be higher than your current amount.</span></p></body></html>")
                 self.win.goal_amount_info.show()
                 self.win.done.setEnabled(False)
             else:
-                self.win.dialog.data['goal_amount'] = cls(self.text())
+                self.win.dialog.data['goal_amount'] = cls(text)
                 self.win.done.setEnabled(True)
                 self.win.goal_amount_info.setText("<html><head/><body><p><span style=\" font-size:8pt; color:#ff557f;\">For example, if your current wins are 50 and you want to<br/>reach 75, simply enter 25 into this box instead of 75.<br/></span><span style=\" font-size:8pt; color:#ff40e0;\">To change this, simply tick the Milstone checkbox.</span></p></body></html>")
                 if self.win.milestone.isChecked():
@@ -73,70 +74,70 @@ class GoalLineEdit(QLineEdit):
                 else:
                     self.win.goal_amount_info.show()
 
-            if self.win.dialog.data['api_goal_name'] == "smashLevel" and cls(self.text()) > 1920:
+            if self.win.dialog.data['api_goal_name'] == "smashLevel" and cls(text) > 1920:
                 self.win.goal_amount_info.setText(f"<html><head/><body><p><span style=\" font-size:10pt; color:#d90000;\">The maximum Smash Level is {computeHtml('&b1920&6✶').replace('; font-size: 12pt', '')}.</span></p></body></html>")
                 self.win.goal_amount_info.show()
                 self.win.done.setEnabled(False)
-            elif self.win.dialog.data['api_goal_name'] == "smashLevel" and cls(self.text()) <= 1920 and cls(self.text()) > self.win.dialog.value:
+            elif self.win.dialog.data['api_goal_name'] == "smashLevel" and cls(text) <= 1920 and cls(text) > self.win.dialog.value:
                 self.win.done.setEnabled(True)
 
-            if self.win.dialog.data['api_goal_name'] == "speeduhc_level" and cls(self.text()) > 10:
+            if self.win.dialog.data['api_goal_name'] == "speeduhc_level" and cls(text) > 10:
                 self.win.goal_amount_info.setText(f"<html><head/><body><p><span style=\" font-size:10pt; color:#d90000;\">The maximum SpeedUHC Level is {computeHtml('&d10❋').replace('; font-size: 12pt', '')}.</span></p></body></html>")
                 self.win.goal_amount_info.show()
                 self.win.done.setEnabled(False)
-            elif self.win.dialog.data['api_goal_name'] == "speeduhc_level" and cls(self.text()) <= 10 and cls(self.text()) > self.win.dialog.value:
+            elif self.win.dialog.data['api_goal_name'] == "speeduhc_level" and cls(text) <= 10 and cls(text) > self.win.dialog.value:
                 self.win.done.setEnabled(True)
 
-            if self.win.dialog.data['api_goal_name'] == "uhc_level" and cls(self.text()) > 15:
+            if self.win.dialog.data['api_goal_name'] == "uhc_level" and cls(text) > 15:
                 self.win.goal_amount_info.setText(f"<html><head/><body><p><span style=\" font-size:10pt; color:#d90000;\">The maximum UHC Level is {computeHtml('&615✫').replace('; font-size: 12pt', '')}.</span></p></body></html>")
                 self.win.goal_amount_info.show()
                 self.win.done.setEnabled(False)
-            elif self.win.dialog.data['api_goal_name'] == "uhc_level" and cls(self.text()) <= 15 and cls(self.text()) > self.win.dialog.value:
+            elif self.win.dialog.data['api_goal_name'] == "uhc_level" and cls(text) <= 15 and cls(text) > self.win.dialog.value:
                 self.win.done.setEnabled(True)
 
-            if self.win.dialog.data['api_goal_name'] == "pit_level" and cls(self.text()) > 120:
+            if self.win.dialog.data['api_goal_name'] == "pit_level" and cls(text) > 120:
                 self.win.goal_amount_info.setText(f"<html><head/><body><p><span style=\" font-size:10pt; color:#d90000;\">The maximum Pit Level is {computeHtml('&7[&b120&7]').replace('; font-size: 12pt', '')}.</span></p></body></html>")
                 self.win.goal_amount_info.show()
                 self.win.done.setEnabled(False)
-            elif self.win.dialog.data['api_goal_name'] == "pit_level" and cls(self.text()) <= 120 and cls(self.text()) > self.win.dialog.value:
+            elif self.win.dialog.data['api_goal_name'] == "pit_level" and cls(text) <= 120 and cls(text) > self.win.dialog.value:
                 self.win.done.setEnabled(True)
 
-        elif re.match('\d+', self.text()) and not self.win.milestone.isChecked():
+        elif re.fullmatch('\d+', text) and not self.win.milestone.isChecked():
             self.win.dialog.data['mid_amount'] = 0
-            if cls(self.text()) != 0:
-                self.win.dialog.data['goal_amount'] = cls(self.text())
+            if cls(text) != 0:
+                self.win.dialog.data['goal_amount'] = cls(text)
                 self.win.done.setEnabled(True)
             else:
                 self.win.done.setEnabled(False)
 
             self.win.goal_amount_info.setText("<html><head/><body><p><span style=\" font-size:8pt; color:#ff557f;\">For example, if your current wins are 50 and you want to<br/>reach 75, simply enter 25 into this box instead of 75.<br/></span><span style=\" font-size:8pt; color:#ff40e0;\">To change this, simply tick the Milstone checkbox.</span></p></body></html>")
 
-            if self.win.dialog.data['api_goal_name'] == "smashLevel" and self.win.dialog.data['current_amount']+cls(self.text()) > 1920:
+            if self.win.dialog.data['api_goal_name'] == "smashLevel" and self.win.dialog.data['current_amount']+cls(text) > 1920:
                 self.win.goal_amount_info.setText(f"<html><head/><body><p><span style=\" font-size:10pt; color:#d90000;\">The maximum Smash Level is {computeHtml('&b1920&6✶').replace('; font-size: 12pt', '')}.</span></p></body></html>")
                 self.win.goal_amount_info.show()
                 self.win.done.setEnabled(False)
-            elif self.win.dialog.data['api_goal_name'] == "smashLevel" and self.win.dialog.data['current_amount']+cls(self.text()) <= 1920 and cls(self.text()) != 0:
+            elif self.win.dialog.data['api_goal_name'] == "smashLevel" and self.win.dialog.data['current_amount']+cls(text) <= 1920 and cls(text) != 0:
                 self.win.done.setEnabled(True)
 
-            if self.win.dialog.data['api_goal_name'] == "speeduhc_level" and self.win.dialog.data['current_amount']+cls(self.text()) > 10:
+            if self.win.dialog.data['api_goal_name'] == "speeduhc_level" and self.win.dialog.data['current_amount']+cls(text) > 10:
                 self.win.goal_amount_info.setText(f"<html><head/><body><p><span style=\" font-size:10pt; color:#d90000;\">The maximum SpeedUHC Level is {computeHtml('&d10❋').replace('; font-size: 12pt', '')}.</span></p></body></html>")
                 self.win.goal_amount_info.show()
                 self.win.done.setEnabled(False)
-            elif self.win.dialog.data['api_goal_name'] == "speeduhc_level" and self.win.dialog.data['current_amount']+cls(self.text()) <= 10 and cls(self.text()) != 0:
+            elif self.win.dialog.data['api_goal_name'] == "speeduhc_level" and self.win.dialog.data['current_amount']+cls(text) <= 10 and cls(text) != 0:
                 self.win.done.setEnabled(True)
 
-            if self.win.dialog.data['api_goal_name'] == "uhc_level" and self.win.dialog.data['current_amount']+cls(self.text()) > 15:
+            if self.win.dialog.data['api_goal_name'] == "uhc_level" and self.win.dialog.data['current_amount']+cls(text) > 15:
                 self.win.goal_amount_info.setText(f"<html><head/><body><p><span style=\" font-size:10pt; color:#d90000;\">The maximum UHC Level is {computeHtml('&615✫').replace('; font-size: 12pt', '')}.</span></p></body></html>")
                 self.win.goal_amount_info.show()
                 self.win.done.setEnabled(False)
-            elif self.win.dialog.data['api_goal_name'] == "uhc_level" and self.win.dialog.data['current_amount']+cls(self.text()) <= 15 and cls(self.text()) != 0:
+            elif self.win.dialog.data['api_goal_name'] == "uhc_level" and self.win.dialog.data['current_amount']+cls(text) <= 15 and cls(text) != 0:
                 self.win.done.setEnabled(True)
 
-            if self.win.dialog.data['api_goal_name'] == "pit_level" and self.win.dialog.data['current_amount']+cls(self.text()) > 120:
+            if self.win.dialog.data['api_goal_name'] == "pit_level" and self.win.dialog.data['current_amount']+cls(text) > 120:
                 self.win.goal_amount_info.setText(f"<html><head/><body><p><span style=\" font-size:10pt; color:#d90000;\">The maximum Pit Level is {computeHtml('&7[&b120&7]').replace('; font-size: 12pt', '')}.</span></p></body></html>")
                 self.win.goal_amount_info.show()
                 self.win.done.setEnabled(False)
-            elif self.win.dialog.data['api_goal_name'] == "pit_level" and self.win.dialog.data['current_amount']+cls(self.text()) <= 120 and cls(self.text()) != 0:
+            elif self.win.dialog.data['api_goal_name'] == "pit_level" and self.win.dialog.data['current_amount']+cls(text) <= 120 and cls(text) != 0:
                 self.win.done.setEnabled(True)
 
         if self.win.name.text() == "":
