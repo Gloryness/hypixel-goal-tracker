@@ -419,8 +419,10 @@ class Main(QMainWindow):
         self.all_goals = {}
 
         self.cache = Cache(f'{os.environ["USERPROFILE"]}/AppData/Local/hypixel-goal-tracker', 'data.json')
+        quit_ = False
 
         def func():
+            nonlocal quit_
             try:
                 module_path = self.cache.folder+"\\pending\\Hypixel Goal Tracker Updater.exe"
                 module_path = module_path.replace("\\", "\\\\")
@@ -430,18 +432,19 @@ class Main(QMainWindow):
             try:
                 _ = requests.head('https://www.google.com/', timeout=3.5)
 
-                update_executable = requests.get('https://raw.githubusercontent.com/Gloryness/hypixel-goal-tracker-backend/main/pending/Hypixel%20Goal%20Tracker%20Updater.exe')
-
-                if os.path.isfile(directory := self.cache.folder + "\\pending\\Hypixel Goal Tracker Updater.exe"):
-                    os.remove(directory)
-
-                with open(directory, 'wb') as f:
-                    f.write(update_executable.content)
-
                 newest_version = requests.get('https://raw.githubusercontent.com/Gloryness/hypixel-goal-tracker/main/version.txt').text.strip()
 
                 if version.parse(__version__) < version.parse(newest_version):
+                    update_executable = requests.get('https://raw.githubusercontent.com/Gloryness/hypixel-goal-tracker-backend/main/pending/Hypixel%20Goal%20Tracker%20Updater.exe')
+
+                    if os.path.isfile(directory := self.cache.folder + "\\pending\\Hypixel Goal Tracker Updater.exe"):
+                        os.remove(directory)
+
+                    with open(directory, 'wb') as f:
+                        f.write(update_executable.content)
+
                     checking.close()
+                    quit_ = True
                     subprocess.call([directory, '-p', path().replace("\\", "/"), '-v', newest_version])
                 else:
                     checking.close()
@@ -456,9 +459,9 @@ class Main(QMainWindow):
         checking = UpdateCheck()
         checking.exec_()
 
-        while thread.is_alive():
-            t = threading.Event()
-            t.wait(1.0)
+        if quit_:
+            quit()
+            return
 
         self.ui.name_label.setText("Name")
         self.ui.goal_label.setText("Goal")
