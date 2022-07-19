@@ -2,15 +2,23 @@ class summarise:
     def __init__(self, *args):
         self.args = list(args)
 
-
     def result(self, player):
-        arr = []
-        for arg in self.args:
-            arr.append(0 if arg not in player else player[arg])
-        return sum(arr)
+        if -1 != self.args[-1]:
+            arr = []
+            for arg in self.args:
+                arr.append(0 if arg not in player else player[arg])
+            return sum(arr)
+        else:
+            arr = []
+            for arg in self.args[:-1]:
+                arr.append("0" if arg not in player else f"{player[arg]}")
+            return eval('-'.join(arr))
 
 def add(*args):
     return [*args]
+
+def sub(*args):
+    return [*args, -1]
 
 KNOWN_MANUALS = [
     "networkExp",
@@ -25,7 +33,6 @@ KNOWN_MANUALS = [
     "Experience",
     "levelFormatted",
     "winsArcade",
-    "killsQuake",
     "fortune",
     "superluck",
     "endurance",
@@ -343,7 +350,7 @@ murdermystery = [
     },
     {
         'Murderer Wins': 'murderer_wins',
-        'Murder Wins Classic': 'wins_MURDER_CLASSIC',
+        'Murderer Wins Classic': 'wins_MURDER_CLASSIC',
         'Murderer Wins Double Up': 'wins_MURDER_DOUBLE_UP'
     },
     {
@@ -425,7 +432,8 @@ quake = [
         'Coins': 'coins',
         'Highest Killstreak': 'highest_killstreak',
         'Headshots': 'headshots',
-        'Kills': 'killsQuake'
+        'Wins': add('wins', 'wins_team'),
+        'Kills': add('kills', 'kills_team')
     },
     {
         'Solo Wins': 'wins',
@@ -434,6 +442,7 @@ quake = [
         'Team Kills': 'kills_teams'
     },
     {
+        'Killstreaks': add('killstreaks', 'killstreaks_teams'),
         'Solo Killstreaks': 'killstreaks',
         'Teams Killstreaks': 'killstreaks_teams'
     }
@@ -444,11 +453,16 @@ hungergames = [
         'Coins': 'coins',
         'Games Played': 'games_played',
         'Chests Opened': 'chests_opened',
-        'Kills': 'kills'
     },
     {
+        'Kills': 'kills',
+        'Kills Solo': sub('kills', 'kills_teams_normal'),
+        'Kills Teams': 'kills_teams_normal'
+    },
+    {
+        'Wins': add('wins_solo_normal', 'wins_teams_normal'),
         'Wins Solo': 'wins_solo_normal',
-        'Wins Team': 'wins_teams'
+        'Wins Teams': 'wins_teams_normal'
     }
 ]
 
@@ -552,9 +566,9 @@ tntgames = [
         'Bow Spleef Shots Fired': 'tags_bowspleef',
         'TNT Tag Wins': 'wins_tntag',
         'TNT Tag Kills': 'kills_tntag',
-        'TNT Wizards Wins': 'wins_capture'
     },
     {
+        'TNT Wizards Wins': 'wins_capture',
         'TNT Wizards Kills': 'kills_capture',
         'TNT Wizards Assists': 'assists_capture'
     }
@@ -612,6 +626,7 @@ vampirez = [
         'Human Kills': 'human_kills'
     },
     {
+        'Wins': add('human_wins', 'vampire_wins'),
         'Human Wins': 'human_wins',
         'Vampire Wins': 'vampire_wins'
     }
@@ -620,9 +635,11 @@ vampirez = [
 walls = [
     {
         'Coins': 'coins',
+        'Wins': 'wins',
         'Kills': 'kills',
         'Assists': 'assists',
-        'Wins': 'wins'
+        'Deaths': 'deaths',
+        'Losses': 'losses'
     }
 ]
 
