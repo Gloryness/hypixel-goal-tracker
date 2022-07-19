@@ -3,17 +3,21 @@ from PyQt5.QtGui import QPixmap, QFont, QIcon, QBrush, QColor, QPalette
 from PyQt5.QtWidgets import QSizePolicy, QFrame, QWidget, QScrollArea, QGridLayout, QLabel, QSpacerItem, QLayout, QToolButton, QVBoxLayout, QMainWindow, \
     QSplitter
 
+from packaging import version
+import subprocess
 import threading
+import requests
 import os
 import re
 
-from app import path, convert_to_time
+from app import path, convert_to_time, __version__
 from app.cache import Cache
 from gui.setup import Setup
 from gui.extract_info import Extractor
 from gui.completed import CompletedGoals
 from gui.best_goals import BestGoals
 from gui.settings import Config
+from gui.check_updates import UpdateCheck
 from util.threadmanager import ThreadManager
 from util.api import API, APISync
 from util.process import processProgress
@@ -415,6 +419,46 @@ class Main(QMainWindow):
         self.all_goals = {}
 
         self.cache = Cache(f'{os.environ["USERPROFILE"]}/AppData/Local/hypixel-goal-tracker', 'data.json')
+
+        def func():
+            try:
+                module_path = self.cache.folder+"\\pending\\Hypixel Goal Tracker Updater.exe"
+                module_path = module_path.replace("\\", "\\\\")
+                subprocess.call(f"wmic process where ExecutablePath='{module_path}' delete")
+            except:
+                pass
+            try:
+                _ = requests.head('https://www.google.com/', timeout=3.5)
+
+                update_executable = requests.get('https://raw.githubusercontent.com/Gloryness/hypixel-goal-tracker-backend/main/pending/Hypixel%20Goal%20Tracker%20Updater.exe')
+
+                if os.path.isfile(directory := self.cache.folder + "\\pending\\Hypixel Goal Tracker Updater.exe"):
+                    os.remove(directory)
+
+                with open(directory, 'wb') as f:
+                    f.write(update_executable.content)
+
+                newest_version = requests.get('https://raw.githubusercontent.com/Gloryness/hypixel-goal-tracker/main/version.txt').text.strip()
+
+                if version.parse(__version__) < version.parse(newest_version):
+                    checking.close()
+                    subprocess.call([directory, '-p', path().replace("\\", "/"), '-v', newest_version])
+                else:
+                    checking.close()
+            except:
+                checking.close()
+                import traceback
+                print(traceback.format_exc())
+
+        thread = threading.Thread(target=func)
+        thread.start()
+
+        checking = UpdateCheck()
+        checking.exec_()
+
+        while thread.is_alive():
+            t = threading.Event()
+            t.wait(1.0)
 
         self.ui.name_label.setText("Name")
         self.ui.goal_label.setText("Goal")

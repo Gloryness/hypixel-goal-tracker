@@ -16,7 +16,7 @@ class DManualSetup:
             _ = requests.head('https://www.google.com/', timeout=2.2)
         except:
             try:
-                _ = requests.head('https://www.google.com/', timeout=6)
+                _ = requests.head('https://www.google.com/', timeout=10.0)
             except:
                 return 'timeout'
 
