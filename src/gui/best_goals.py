@@ -450,7 +450,7 @@ class BestGoals(QDialog):
 
         self.ui.name_label.setText("Name")
         self.ui.started_with_label.setText("Started With")
-        self.ui.goal_label.setText("Goal")
+        self.ui.goal_label.setText("Ended With")
         self.ui.time_taken_label.setText("Time Taken")
         self.ui.completed_label.setText("Completed")
         self.ui.milestone_label.setText("Milestone?")
@@ -483,7 +483,7 @@ class BestGoals(QDialog):
         self.ui.milestone_option.setCheckState(self.goal_organiser['milestone'])
         self.ui.sort_by_option.setText(self.goal_organiser['sort_by'])
 
-        self.unpack(self.completed_goals, sorted_key=self.goal_organiser['sort_by'].lower().replace(" ", "_"))
+        self.unpack(self.completed_goals, sorted_key=self.goal_organiser['sort_by'].lower().replace(" ", "_") if self.goal_organiser['sort_by'] != "Ended With" else "goal")
 
         self.show()
 
@@ -499,7 +499,7 @@ class BestGoals(QDialog):
             del self.locals[str(index)]
 
         self.ui.name_label.setText("Name")
-        self.ui.goal_label.setText("Goal")
+        self.ui.goal_label.setText("Ended With")
         self.ui.started_with_label.setText("Started With")
         self.ui.time_taken_label.setText("Time Taken")
         self.ui.completed_label.setText("Completed")
@@ -610,7 +610,7 @@ class BestGoals(QDialog):
         self.s = Goal(self, thread=False, not_close=False)
 
     def unpack_sorting_menu(self):
-        sorting = ['Name', 'Started With', 'Goal', 'Time Taken', 'Completed', 'Milestone']
+        sorting = ['Name', 'Started With', 'Ended With', 'Time Taken', 'Completed', 'Milestone']
 
         for value in sorting:
             action = SortByAction(self)
