@@ -7,6 +7,7 @@ A desktop application to track anything on the Hypixel Network.
 
 </div>
 
+[![Release](https://img.shields.io/github/v/release/Gloryness/hypixel-goal-tracker)](https://github.com/Gloryness/hypixel-goal-tracker/releases)
 [![Downloads](https://img.shields.io/github/downloads/Gloryness/hypixel-goal-tracker/total)](https://github.com/Gloryness/hypixel-goal-tracker/releases)
 
 ## 🖥️ Executable File Installation
