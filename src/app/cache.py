@@ -23,6 +23,9 @@ class Cache:
         if not os.path.exists(self.folder): # making sure all the folders exist to avoid errors
             os.makedirs(self.folder)
 
+        if not os.path.exists(self.folder+'\\pending'):
+            os.makedirs(self.folder+'\\pending')
+
         if not os.path.isfile(self.filename):
             with open(self.filename, 'w') as f:
                 json.dump(self.layout, f, indent=3)
