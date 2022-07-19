@@ -3,11 +3,15 @@
 <img src="images/banner.png" width="30%" alt="Hypixel Goal Tracker Logo">
 
 # Hypixel Goal Tracker
-A desktop application to track anything on the Hypixel Network.
+A desktop application to track anything on the Hypixel Network. Only supports Windows currently.
 
 </div>
 
+## ⚒️ Executable File Installation
+- You can download the latest executable file [here](https://github.com/Gloryness/hypixel-goal-tracker/releases)
+
 ## 💻 Developing
+
 ### ⚒️ Requirements
 -   [`Python`]: For running code (`v3.8.2`)
 -   [`Pip`]: Installing packages and running scripts
