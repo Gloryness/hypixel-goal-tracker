@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="images/banner.png" width="20%" alt="Hypixel Goal Tracker Logo">
+<img src="images/banner.png" width="30%" alt="Hypixel Goal Tracker Logo">
 
 # Hypixel Goal Tracker
 A desktop application to track anything on the Hypixel Network.
