@@ -18,6 +18,7 @@ A desktop application to track anything on the Hypixel Network.
 -   [`Pip`]: Installing packages and running scripts
     -   `pyqt5-tools`: The overall Graphical User Interface.
     -   `requests`: Non asyncronous requests
+    -   `packaging`: Dealing with versions
 -   [`Hypixel API Key`]: For fetching stats from Hypixel. Run `/api new` on hypixel.net
 
 ## 📙 Features
