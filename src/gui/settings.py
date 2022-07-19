@@ -3,7 +3,7 @@ from PyQt5.QtGui import QPixmap, QFont, QIcon, QBrush, QColor, QPalette
 from PyQt5.QtWidgets import QSizePolicy, QFrame, QGridLayout, QLabel, QSpacerItem, QDialog, QToolButton, QMessageBox, QHBoxLayout, QLineEdit, QFileDialog, \
     QDoubleSpinBox, QGroupBox, QCheckBox, QVBoxLayout
 
-from app import path
+from app import path, __version__
 from app.cache import Cache
 from util.api import Test
 from util.process import computeHtml
@@ -106,6 +106,14 @@ class ConfigUI:
         self.gridLayout_2.addItem(spacerItem2, 1, 1, 1, 1)
         spacerItem3 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
         self.gridLayout_2.addItem(spacerItem3, 3, 1, 1, 1)
+
+        self.version = QLabel(self.win)
+        font.setPointSize(13)
+        font.setWeight(400)
+        self.version.setFont(font)
+        self.version.setPalette(palette)
+        self.version.setAlignment(Qt.AlignHCenter)
+        self.gridLayout_2.addWidget(self.version, 1, 1, 1, 1)
 
         self.horizontalLayout_3 = QHBoxLayout()
         self.cancel_button = QToolButton(self.win)
@@ -320,6 +328,7 @@ class Config(QDialog):
 
         self.test = Test()
 
+        self.ui.version.setText(f"v{__version__}")
         self.ui.title.setText("Configuration")
         self.ui.cancel_button.setText("Cancel")
         self.ui.apply_button.setText("Apply")
