@@ -38,7 +38,8 @@ def getFormattedWoolWarsLevel(level):
     prestigeColors = [
         {"req": 0, "format": lambda n: f"&7[{n}✫]"},
         {"req": 100, "format": lambda n: f"&f[{n}✫]"},
-        {"req": 200, "format": lambda n: f"&c[{n}✫]"}
+        {"req": 200, "format": lambda n: f"&c[{n}✫]"},
+        {"req": 300, "format": lambda n: f"&6[{n}✫]"}
     ]
 
     return applyFormat(prestigeColors, star)
