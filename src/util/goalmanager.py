@@ -3,6 +3,7 @@ from PyQt5.QtCore import Qt
 
 from app.clock import Clock
 from app.cache import Cache
+from util.constants import KNOWN_MANUALS
 from util.determine import DManualSetup
 from util.process import processManuals, processProgress, computeHtml
 
@@ -125,7 +126,7 @@ class GoalManager:
 
             try:
                 if data['api_gamemode_name'] == 'Hypixel':
-                    if data['api_goal_name'] not in ['records', 'networkExpp']:
+                    if data['api_goal_name'] not in KNOWN_MANUALS:
                         current_amount = api.player_stats[data['api_goal_name']]
                 else:
                     stats = api.player_stats['stats'][data['api_gamemode_name']]
