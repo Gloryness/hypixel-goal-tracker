@@ -1,10 +1,12 @@
-from PyQt5.QtCore import QMetaObject, pyqtSlot, pyqtSignal, Qt
+from PyQt5.QtCore import QMetaObject, pyqtSlot, pyqtSignal, Qt, QDateTime, QDate, QTime
 from PyQt5.QtGui import QFont, QIcon, QBrush, QColor, QPalette, QIntValidator, QDoubleValidator
-from PyQt5.QtWidgets import QSizePolicy, QFrame, QGridLayout, QLabel, QSpacerItem, QFormLayout, QHBoxLayout, QVBoxLayout, QPushButton, \
-    QToolButton, QDialog
+from PyQt5.QtWidgets import QSizePolicy, QFrame, QGridLayout, QLabel, QSpacerItem, QFormLayout, QHBoxLayout, QVBoxLayout, QToolButton, QComboBox, \
+    QDialog
 
 import threading
 import random
+import datetime
+import time as time_
 import re
 
 from app import path
@@ -24,12 +26,17 @@ from util.gamemodes.uhc.uhclevel import getFormattedUhcLevel
 from util.gamemodes.pit.pitlevel import getFormattedPitLevel
 
 from util.subclasses import (
+    DoneButton,
     MilestoneCheckBox,
     InfiniteGoalCheckBox,
     InfiniteDurationCheckBox,
     NameLineEdit,
     GoalLineEdit
 )
+
+class State:
+    def __init__(self, state):
+        self.state = state
 
 class SetupUI:
     def __init__(self, dialog: QDialog):
@@ -115,7 +122,7 @@ class SetupUI:
 
         self.formLayout.setLayout(0, QFormLayout.SpanningRole, self.verticalLayout)
 
-        self.done = QPushButton(self.dialog)
+        self.done = DoneButton(self, self.dialog)
         palette = QPalette()
         brush = QBrush(QColor(170, 0, 0))
         brush.setStyle(Qt.SolidPattern)
@@ -129,7 +136,7 @@ class SetupUI:
         font.setWeight(75)
         self.done.setFont(font)
         self.done.setAutoDefault(False)
-        self.formLayout.setWidget(7, QFormLayout.SpanningRole, self.done)
+        self.formLayout.setWidget(9, QFormLayout.SpanningRole, self.done)
 
         self.gridLayout = QGridLayout()
         self.current_amount = QLabel(self.dialog)
@@ -307,7 +314,7 @@ class SetupUI:
         self.change.setFont(font)
         self.change.setAutoRaise(True)
         self.horizontalLayout_4.addWidget(self.change)
-        self.formLayout.setLayout(6, QFormLayout.SpanningRole, self.horizontalLayout_4)
+        self.formLayout.setLayout(8, QFormLayout.SpanningRole, self.horizontalLayout_4)
 
         QMetaObject.connectSlotsByName(self.dialog)
 
@@ -315,6 +322,25 @@ class SetupUI:
         font = QFont()
         font.setFamily("Nirmala UI")
         font.setWeight(50)
+
+        self.requirement_layout = QHBoxLayout()
+
+        self.requirement_label = QLabel(self.dialog)
+        self.requirement_label.setText("<html><head/><body><p><span style=\" color:#aaff00;\">Show live goal requirement in...</span></p></body></html>")
+
+        self.requirement = QComboBox(self.dialog)
+        self.requirement.addItems(["months", "days", "hours", "minutes", "seconds"])
+        self.requirement.setCurrentIndex(3)
+
+        self.requirement_layout.addWidget(self.requirement_label)
+        self.requirement_layout.addWidget(self.requirement)
+
+        self.formLayout.setLayout(4, QFormLayout.LabelRole, self.requirement_layout)
+
+        self.requirement_example = QLabel(self.dialog)
+        self.requirement_example.setText("<html><head/><body><p><span style=\" color:#aaff00;\">Example:</span><span style=\" font-weight:600; color:#ffffff\">2 Solo Kills/minute </span><span style=\" color:#aaff00;\">required to complete goal</span></p></body></html>")
+
+        self.formLayout.setWidget(5, QFormLayout.SpanningRole, self.requirement_example)
 
         palette = QPalette()
         brush = QBrush(QColor(170, 170, 255))
@@ -326,15 +352,16 @@ class SetupUI:
         self.infiniteGoalCheck.setFont(font)
         self.infiniteGoalCheck.setPalette(palette)
         self.infiniteGoalCheck.setText("Enable an infinite goal amount")
-        self.formLayout.setWidget(4, QFormLayout.SpanningRole, self.infiniteGoalCheck)
+        self.formLayout.setWidget(6, QFormLayout.SpanningRole, self.infiniteGoalCheck)
 
         self.infiniteDurationCheck = InfiniteDurationCheckBox(self, self.dialog)
         self.infiniteDurationCheck.setFont(font)
         self.infiniteDurationCheck.setPalette(palette)
         self.infiniteDurationCheck.setText("Enable infinite duration")
-        self.formLayout.setWidget(5, QFormLayout.SpanningRole, self.infiniteDurationCheck)
+        self.formLayout.setWidget(7, QFormLayout.SpanningRole, self.infiniteDurationCheck)
 
 class Setup(QDialog):
+    closeWin = pyqtSignal()
     set = pyqtSignal(str)
     showw = pyqtSignal()
 
@@ -366,6 +393,10 @@ class Setup(QDialog):
         self.data['status'] = 'INCOMPLETE'
         self.data['seconds'] = 0 # time spent on the goal
         self.data['paused_seconds'] = 0
+        self.data['goal'] = ""
+        self.data['api_goal_name'] = ""
+        self.data['gamemode'] = ""
+        self.data['api_gamemode_name'] = ""
 
         self.ui.name_label.setText("Name:")
         self.ui.name.setPlaceholderText("____")
@@ -391,7 +422,27 @@ class Setup(QDialog):
         else:
             if self.auto['api_goal_name'] == "networkExpp":
                 self.ui.goal_amount.setValidator(QDoubleValidator(decimals=2))
-            self.ui.done.clicked.connect(lambda: self.win.edit_goal(self.auto['index'], self.data))
+
+            def edit_goal():
+                self.data['requirement'] = self.ui.requirement.currentText()
+                self.win.edit_goal(self.auto['index'], self.data)
+
+            self.ui.done.clicked.connect(edit_goal)
+
+            if 'complete_by' in self.auto:
+                self.queues = []
+
+                state = State("active")
+                self.queues.append(state)
+
+                complete_by = self.auto['complete_by']
+                dateTime = QDateTime(
+                    QDate(complete_by['year'], complete_by['month'], complete_by['day']),
+                    QTime(complete_by['hour'], complete_by['minute'], complete_by['second'])
+                )
+                self.completeBy = dateTime
+                thread = threading.Timer(0.1, self.auto_update, args=(dateTime, state))
+                thread.start()
 
         self.ui.goal_amount.setDisabled(True)
         self.ui.gamemode.setDisabled(True)
@@ -400,17 +451,73 @@ class Setup(QDialog):
         self.ui.goal_label.setDisabled(True)
         self.ui.done.setDisabled(True)
 
+        self.closeWin.connect(self.closeWindow)
         self.set.connect(self.setText)
         self.showw.connect(self.showText)
 
         if self.auto != {}:
             self.data = self.auto.copy()
+            self.ui.requirement.setCurrentText(self.data['requirement'])
             self.value = self.data['current_amount']
             self.unpack_data(self.data)
 
         self.show()
 
+    def add_task(self, data):
+        if len(self.queues) > 0:
+            self.queues[-1].state = "break"
+        state = State("active")
+        self.queues.append(state)
+
+        dateTime = QDateTime(
+            QDate(data['year'], data['month'], data['day']),
+            QTime(data['hour'], data['minute'], data['second'])
+        )
+        self.completeBy = dateTime
+        thread = threading.Thread(target=self.auto_update, args=(dateTime, state))
+        thread.start()
+
+    def auto_update(self, dateTime, state):
+        while self.isVisible() and state.state != "break":
+            date, time = dateTime.date(), dateTime.time()
+            a = datetime.datetime.now()
+            b = datetime.datetime(date.year(), date.month(), date.day(), time.hour(), time.minute(), time.second())
+            delta = b - a
+
+            self.clock.days = delta.days
+            self.clock.hours = 0
+            self.clock.minutes = 0
+            self.clock.seconds = delta.seconds + (1 if delta.microseconds / 10000 > 50 else 0)
+
+            if self.auto:
+                if self.clock.days == 0 and self.clock.seconds <= 9:
+                    if hasattr(self, 't'):
+                        if self.t.isVisible():
+                            self.t.closeWin.emit()
+                    self.closeWin.emit()
+                    state.state = "break"
+                    return
+
+            if (self.clock.days <= 0 and self.clock.seconds <= 0) or self.clock.days < 0:
+                self.ui.timeLeft.setText(f"<html><head/><body><p><span style=\" font-size:9pt; color:#30df30;\">You have </span><span style=\" font-size:9pt; font-weight:600; color:#FF4242;\">0s</span><span style=\" font-size:9pt; color:#30df30;\"> left to complete this goal.</span></p></body></html>")
+                self.ui.done.setEnabled(False)
+                state.state = "break"
+                return
+
+            self.data['clock'] = self.clock.format()
+            self.completeBy = dateTime
+
+            if state.state == "break":
+                return
+
+            self.change_time(self.clock.format())
+
+            time_.sleep(1.0)
+
     def closeEvent(self, event):
+        if hasattr(self, 'queues'):
+            self.queues[-1].state = "break"
+
         if not self.closed:
             if self.auto != {}:
                 self.win.edit_goal(self.auto['index'], self.data)
@@ -422,9 +529,11 @@ class Setup(QDialog):
         self.s = Goal(self)
 
     def setup_time(self):
-        self.s = Time(self.clock, self)
+        self.t = Time(self.clock, self)
 
     def unpack_data(self, data):
+        self.ui.infiniteDurationCheck.setDisabled(True)
+        self.ui.infiniteGoalCheck.setDisabled(True)
         self.ui.name.setText(data['name'])
         self.ui.gamemode_label.setText(f"<html><head/><body><p>Gamemode: <span style=\" font-weight:600; color:#1da8c7;\">{data['gamemode']}</span></p></body></html>")
         self.ui.goal_label.setText(f"<html><head/><body><p>Goal: <span style=\" font-weight:600; color:#1da8c7;\">{data['goal']}</span></p></body></html>")
@@ -451,18 +560,19 @@ class Setup(QDialog):
         elif self.data['api_goal_name'] == "pit_level":
             gv = computeHtml(getFormattedPitLevel(self.data['pit_prestige'], goal_value))
 
+        self.ui.goal_amount.setDisabled(False)
+        self.ui.goal_amount_info.setText("<html><head/><body><p><span style=\" font-size:8pt; color:#ff557f;\">You cannot toggle milstone during editing.</span></p></body></html>")
+        self.ui.goal_amount_info.setVisible(True)
+
         self.ui.current_amount.setText(f"<html><head/><body><p><span style=\" color:#2ed0bd;\">{data['goal']}: </span><span style=\" font-weight:600; color:#e51be5;\">{gv}</span></p></body></html>")
         if data['goal_amount'] == 'infinite':
             self.ui.goal_amount.setText("∞")
-            self.ui.infiniteGoalCheck.setChecked(True)
-            self.ui.infiniteDurationCheck.setDisabled(True)
-            self.ui.infiniteGoalCheck.setDisabled(True)
+            self.ui.goal_amount.setDisabled(True)
+            self.ui.goal_amount_info.setText('<html><head/><body><p><span style=" font-size:8pt; font-weight:600; color:#ffffff;">In this instance - you do </span><span style=" font-size:8pt; font-weight:600; color:#00ffff;">not</span><span style=" font-size:8pt; font-weight:600; color:#ffffff;"> have a goal to reach.<br/>You just try the best you can before the time runs out for the goal.</span></p></body></html>')
+            self.ui.goal_amount_info.setVisible(True)
         else:
             self.ui.goal_amount.setText(str(data['goal_amount']))
         if data['clock'] == '∞':
-            self.ui.infiniteDurationCheck.setChecked(True)
-            self.ui.infiniteGoalCheck.setDisabled(True)
-            self.ui.infiniteDurationCheck.setDisabled(True)
             self.ui.change.setDisabled(True)
         self.change_time(data['clock'])
         if data['clock'] != '∞':
@@ -470,15 +580,12 @@ class Setup(QDialog):
         else:
             self.clock = '∞'
         self.ui.current_amount.show()
-        self.ui.goal_amount.setDisabled(False)
         self.ui.gamemode.setDisabled(True)
         self.ui.goal.setDisabled(True)
         self.ui.gamemode_label.setDisabled(False)
         self.ui.goal_label.setDisabled(False)
         self.ui.done.setDisabled(False)
         self.ui.milestone.setChecked(data['milestone'])
-        self.ui.goal_amount_info.setText("<html><head/><body><p><span style=\" font-size:8pt; color:#ff557f;\">You cannot toggle milstone during editing.</span></p></body></html>")
-        self.ui.goal_amount_info.setVisible(True)
         self.ui.milestone.setDisabled(True)
 
     def change_time(self, time):
@@ -629,6 +736,9 @@ class Setup(QDialog):
         else:
             self.ui.done.setDisabled(False)
 
+    @pyqtSlot()
+    def closeWindow(self):
+        self.close()
 
     @pyqtSlot(str)
     def setText(self, value):
