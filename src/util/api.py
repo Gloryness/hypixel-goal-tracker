@@ -1,5 +1,6 @@
 import requests
 import time
+import math
 import re
 import threading
 
@@ -25,12 +26,13 @@ class APISync:
     Used to store data from requests and update it every second (peforms in a seperate thread)
     This was made to avoid sending a unique request for each goal otherwise it would of exceeded the key throttle limit.
     """
-    def __init__(self, api, goals, statistics, request_wait=1.50):
+    def __init__(self, api, goals, statistics, request_wait=1.50, request_step=0.05):
         self.api = api
         self.goals = goals
         self.statistics = statistics[0]
         self.realtime = statistics[1]
         self.request_wait = request_wait
+        self.request_step = request_step
         self.syncing = False # Controls whether the session is active or not.
         self.player_stats = {}
         self.friend_stats = {}
@@ -73,6 +75,8 @@ class APISync:
         self.syncing = True
 
         while self.syncing:
+            step = self.request_step
+
             if not limit:
                 if not (not self.player_endpoint(limit=limit, friends_req=friends_req) and not self.friends_endpoint(limit=limit, friends_req=friends_req)):
                     self.realtime.setText("<html/></head><body><p>"
@@ -115,7 +119,7 @@ class APISync:
                                           f"<span style=\"color: cyan\">(waiting 20.0s)</span>"
                                           "</p></body></html>")
                     num = 20.0
-                    for i in range(int(20.0 / 0.05)):
+                    for i in range(math.ceil(20.0 / step)):
                         if not self.syncing:
                             return
                         number = num if not re.search(".+\.\d$", str(num)) else str(num) + '0'
@@ -124,9 +128,9 @@ class APISync:
                                               "<span style=\"color: red\">Error: Exceeded limit of 120 API requests/min </span>"
                                               f"<span style=\"color: cyan\">(waiting {number}s)</span>"
                                               "</p></body></html>")
-                        num -= 0.05
+                        num -= step
                         num = round(num, 2)
-                        time.sleep(0.04)
+                        time.sleep(20.0 // step)
                 else:
                     time.sleep(20.0)
                 continue
@@ -153,7 +157,7 @@ class APISync:
 
             if not (not self.player_endpoint(limit=limit, friends_req=friends_req) and not self.friends_endpoint(limit=limit, friends_req=friends_req)) and not limit:
                 num = self.request_wait
-                for i in range(int(self.request_wait / 0.05)):
+                for i in range(math.ceil(self.request_wait / step)):
                     if not self.syncing:
                         return
                     number = num if not re.search(".+\.\d$", str(num)) else str(num) + '0'
@@ -161,9 +165,9 @@ class APISync:
                                           "<span style=\"color: white\">Next Hypixel API Request: </span>"
                                           f"<span style=\"color: cyan\">{number}s</span>"
                                           "</p></body></html>")
-                    num -= 0.05
+                    num -= step
                     num = round(num, 2)
-                    time.sleep(0.04)
+                    time.sleep(step)
             else:
                 time.sleep(self.request_wait)
             self.realtime.setText("<html/></head><body><p>"
