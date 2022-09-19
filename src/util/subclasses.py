@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QToolButton, QCheckBox, QLineEdit, QMessageBox, QLabel, QMenu, QAction
+from PyQt5.QtWidgets import QToolButton, QCheckBox, QLineEdit, QMessageBox, QPushButton, QLabel, QMenu, QAction
 from PyQt5.QtGui import QColor, QBrush, QPalette, QFont, QIcon
 from PyQt5.QtCore import Qt
 
@@ -7,6 +7,25 @@ from app import path
 from util.api import Test
 from util import constants
 from util.process import computeHtml
+
+class DoneButton(QPushButton):
+    def __init__(self, win, parent):
+        super().__init__(parent)
+        self.win = win
+
+    def setEnabled(self, a0: bool) -> None:
+        QPushButton.setEnabled(self, a0)
+
+        if a0 is True:
+            if "#FF4242" in self.win.timeLeft.text():
+                self.setEnabled(False)
+
+    def setDisabled(self, a0: bool) -> None:
+        QPushButton.setDisabled(self, a0)
+
+        if a0 is False:
+            if "#FF4242" in self.win.timeLeft.text():
+                self.setEnabled(False)
 
 class NameLineEdit(QLineEdit):
     def __init__(self, win, parent):
@@ -149,7 +168,7 @@ class GamemodeToolButton(QToolButton):
         self.win = win
 
     def enterEvent(self, a0):
-        if self.win.dialog.not_close:
+        if not self.win.dialog.best_goals:
             self.win.game.setText(self.accessibleName())
         else:
             res = len(list(filter(lambda k: k['gamemode'] == self.accessibleName(), self.win.dialog.win.completed_goals)))
@@ -163,7 +182,7 @@ class GamemodeToolButton(QToolButton):
         self.win.dialog.clicked_something = True
         self.win.dialog.win.data['gamemode'] = self.accessibleName()
         self.win.dialog.win.data['api_gamemode_name'] = self.objectName()
-        if not self.win.dialog.not_close:
+        if self.win.dialog.best_goals:
             self.win.dialog.win.goal_organiser['gamemode'] = self.accessibleName()
             self.win.dialog.win.goal_organiser['api_gamemode_name'] = self.objectName()
         self.win.dialog.close()
@@ -180,7 +199,7 @@ class GoalToolButton(QToolButton):
             if self.text() in row:
                 self.win.dialog.win.data['api_goal_name'] = row[self.text()]
                 self.win.dialog.win.data['goal'] = self.text()
-                if not self.win.dialog.not_close:
+                if self.win.dialog.best_goals:
                     self.win.dialog.win.goal_organiser['api_goal_name'] = row[self.text()]
                     self.win.dialog.win.goal_organiser['goal'] = self.text()
                 break
@@ -590,13 +609,15 @@ class InfiniteGoalCheckBox(QCheckBox):
             self.win.goal_amount.setText(self.previous_goal_amount)
             self.win.done.setEnabled(self.previous_done_enabled)
             self.win.dialog.data['goal_amount'] = self.previous_goal_amount_data
-            self.win.name.keyPressEvent("")
-            self.win.goal_amount.keyPressEvent("")
+        self.win.name.keyPressEvent("")
+        self.win.goal_amount.keyPressEvent("")
 
 class InfiniteDurationCheckBox(QCheckBox):
     def __init__(self, win, parent):
         super().__init__(parent)
         self.win = win
+        self.previous_complete_by = ''
+        self.previous_completeBy = ''
 
     def nextCheckState(self):
         QCheckBox.nextCheckState(self)
@@ -604,6 +625,24 @@ class InfiniteDurationCheckBox(QCheckBox):
         if self.isChecked():
             self.win.dialog.change_time('∞')
             self.win.change.setDisabled(True)
+            if 'complete_by' in self.win.dialog.data:
+                self.previous_complete_by = self.win.dialog.data['complete_by'].copy()
+                self.previous_completeBy = self.win.dialog.completeBy
+
+                del self.win.dialog.data['complete_by']
+                del self.win.dialog.completeBy
+
+                self.win.dialog.queues[-1].state = "break"
         else:
             self.win.dialog.change_time(self.win.dialog.data['clock'])
             self.win.change.setDisabled(False)
+            if self.previous_complete_by != '':
+                self.win.dialog.data['complete_by'] = self.previous_complete_by.copy()
+                self.win.dialog.completeBy = self.previous_completeBy
+                self.win.dialog.add_task(self.win.dialog.data['complete_by'])
+
+            self.previous_complete_by = ""
+            self.previous_completeBy = ""
+
+        self.win.name.keyPressEvent("")
+        self.win.goal_amount.keyPressEvent("")
