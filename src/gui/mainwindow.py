@@ -1,18 +1,20 @@
-from PyQt5.QtCore import QMetaObject, QSize, Qt, QRect
+from PyQt5.QtCore import QMetaObject, QSize, Qt
 from PyQt5.QtGui import QPixmap, QFont, QIcon, QBrush, QColor, QPalette
-from PyQt5.QtWidgets import QSizePolicy, QFrame, QWidget, QScrollArea, QGridLayout, QLabel, QSpacerItem, QLayout, QToolButton, QVBoxLayout, QMainWindow, \
+from PyQt5.QtWidgets import QFrame, QWidget, QScrollArea, QGridLayout, QLabel, QLayout, QToolButton, QVBoxLayout, QMainWindow, \
     QSplitter
 
 from packaging import version
 import subprocess
+import datetime
 import threading
 import requests
 import sys
 import os
 import re
 
-from app import path, convert_to_time, __version__, is_executable
+from app import path, __version__, is_executable
 from app.cache import Cache
+from app.clock import Clock, ClockSync
 from gui.setup import Setup
 from gui.extract_info import Extractor
 from gui.completed import CompletedGoals
@@ -21,7 +23,7 @@ from gui.settings import Config
 from gui.check_updates import UpdateCheck
 from util.threadmanager import ThreadManager
 from util.api import API, APISync
-from util.process import processProgress
+from util.process import processProgress, convert_to_time
 
 class MainUI:
     def __init__(self, main_window: QMainWindow):
@@ -226,6 +228,28 @@ class MainUI:
 
         ###########################################################
 
+        self.requirement_frame = QFrame(self.scrollAreaContents)
+        self.requirement_frame.setFrameShape(QFrame.StyledPanel)
+        self.requirement_frame.setFrameShadow(QFrame.Raised)
+        self.requirement_grid = QVBoxLayout(self.requirement_frame)
+        self.requirement_grid.setContentsMargins(0, -1, 0, -1)
+        self.requirement_grid.setAlignment(Qt.AlignTop)
+
+        self.requirement_label = QLabel(self.requirement_frame)
+        self.requirement_label.setPalette(palette)
+        self.requirement_label.setFont(font)
+        self.requirement_grid.addWidget(self.requirement_label)
+
+        self.line = QFrame(self.requirement_frame)
+        self.line.setPalette(line_palette)
+        self.line.setFrameShape(QFrame.HLine)
+        self.line.setFrameShadow(QFrame.Sunken)
+        self.requirement_grid.addWidget(self.line)
+
+        self.splitter.addWidget(self.requirement_frame)
+
+        ###########################################################
+
         self.timeLeft_frame = QFrame(self.scrollAreaContents)
         self.timeLeft_frame.setFrameShape(QFrame.StyledPanel)
         self.timeLeft_frame.setFrameShadow(QFrame.Raised)
@@ -412,12 +436,15 @@ class MainUI:
         QMetaObject.connectSlotsByName(self.win)
 
 class Main(QMainWindow):
-    def __init__(self, parent=None):
+    def __init__(self, rpcstate, parent=None):
         super().__init__(parent)
 
         self.ui = MainUI(self)
         self.ui.setupUi()
         self.all_goals = {}
+
+        self.rpcstate = rpcstate
+        self.inside_settings = False
 
         self.cache = Cache(f'{os.environ["USERPROFILE"]}/AppData/Local/hypixel-goal-tracker', 'data.json')
         quit_ = False
@@ -467,6 +494,7 @@ class Main(QMainWindow):
         self.ui.name_label.setText("Name")
         self.ui.goal_label.setText("Goal")
         self.ui.progress_label.setText("Progress")
+        self.ui.requirement_label.setText("Requirement")
         self.ui.timeLeft_label.setText("Time Left")
         self.ui.status_label.setText("Status")
         self.ui.action_label.setText("Action")
@@ -495,12 +523,18 @@ class Main(QMainWindow):
         self.goal_organiser = self.cache.get('goal_organiser')
 
         request_wait = 1.50 if 'request-wait' not in cache else cache.get('request-wait')
+        request_step = 0.05 if 'next-request-step' not in cache else cache.get('next-request-step')
         rw = request_wait if not re.search(".+\.\d$", str(request_wait)) else str(request_wait)+'0'
         self.progress_design = True if 'progress-design' not in cache else cache.get('progress-design')
         self.percentage_design = True if 'percentage-design' not in cache else cache.get('percentage-design')
 
+        self.clock_sync = ClockSync(self)
+        self.clock_sync.start()
+
         self.api = API(uuid=cache.get('uuid'), api_key=cache.get('api-key'))
-        self.api_sync = APISync(self.api, goals=self.goals, statistics=[self.ui.realtimestats, self.ui.realtimestats2], request_wait=request_wait)
+        self.api_sync = APISync(self.api, goals=self.goals, statistics=[self.ui.realtimestats, self.ui.realtimestats2],
+                                request_wait=request_wait,
+                                request_step=request_step)
         self.api_sync.start_session_sync(limit=True, friends_req=True)
         self.api_sync.thread.join(2)
 
@@ -538,6 +572,7 @@ class Main(QMainWindow):
         self.s = CompletedGoals(self.completed_goals)
 
     def setup_config(self):
+        self.inside_settings = True
         self.s = Config(self)
 
     def fetch_index(self, index):
@@ -629,6 +664,20 @@ class Main(QMainWindow):
         group.addWidget(progress)
         self.ui.progress_grid.addWidget(progress_frame)
 
+        group, requirement_frame = create_group("requirement")
+        exec(f"self.requirement_{num} = QLabel()")
+        requirement: QLabel = getattr(self, f"requirement_{num}")
+        palette = QPalette()
+        brush = QBrush(QColor(0, 255, 0))
+        brush.setStyle(Qt.SolidPattern)
+        palette.setBrush(QPalette.Active, QPalette.WindowText, brush)
+        palette.setBrush(QPalette.Inactive, QPalette.WindowText, brush)
+        requirement.setPalette(palette)
+        requirement.setFont(font)
+        requirement.setTextFormat(Qt.RichText)
+        group.addWidget(requirement)
+        self.ui.requirement_grid.addWidget(requirement_frame)
+
         group, timeLeft_frame = create_group("timeLeft")
         exec(f"self.timeLeft_{num} = QLabel()")
         timeLeft = getattr(self, f"timeLeft_{num}")
@@ -678,7 +727,7 @@ class Main(QMainWindow):
         toggle_goal.setAutoRaise(True)
         toggle_goal.setAccessibleName(str(num))
         toggle_goal.clicked.connect(lambda: self.toggle_goal(toggle_goal.accessibleName()))
-        toggle_goal.setDisabled(False if data['status'] != 'COMPLETE' else True)
+        toggle_goal.setDisabled(False if data['status'] != 'COMPLETE' and 'complete_by' not in data else True)
         group.addWidget(toggle_goal, 0, 1, 1, 1)
 
         exec(f"self.edit_goal_{num} = QToolButton()")
@@ -760,6 +809,41 @@ class Main(QMainWindow):
         else:
             progress.setText(f"<html><head/><body><p><span style=\"{color}\">{outOf}</span></p></body></html>")
 
+        if not temp:
+            data['requirement'] = setup_window.ui.requirement.currentText()
+        else:
+            if 'requirement' not in data:
+                data['requirement'] = 'minutes'
+
+        palette = QPalette()
+        brush = QBrush(QColor(255, 0, 0))
+        brush.setStyle(Qt.SolidPattern)
+        palette.setBrush(QPalette.Active, QPalette.WindowText, brush)
+        palette.setBrush(QPalette.Inactive, QPalette.WindowText, brush)
+        requirement.setPalette(palette)
+        requirement.setText("-")
+
+        if temp:
+            if 'complete_by' in data:
+                # Updating the time left because this is a goal that was set with the Complete By Date setting
+
+                date = data['complete_by']
+                clock = Clock()
+
+                a = datetime.datetime.now()
+                b = datetime.datetime(date['year'], date['month'], date['day'], date['hour'], date['minute'], date['second'])
+                delta = b - a
+
+                clock.days = delta.days
+                clock.hours = 0
+                clock.minutes = 0
+                clock.seconds = delta.seconds + (1 if delta.microseconds / 10000 > 50 else 0)
+
+                if (clock.days <= 0 and clock.seconds <= 0) or clock.days < 0:
+                    data['clock'] = '0m'
+                else:
+                    data['clock'] = clock.format()
+
         timeLeft.setText(data['clock'])
         if infiniteTime: # If the infinite duration setting has been enabled, there is no countdown so therefore it counts seconds and converts it to a readable time format.
             timeLeft.setText(f"{data['clock']} ({convert_to_time(data['seconds'])} uptime)")
@@ -776,6 +860,7 @@ class Main(QMainWindow):
             "goal": goal,
             "main": self,
             "progress": progress,
+            "requirement": requirement,
             "timeLeft": timeLeft,
             "status": status,
             "complete_goal": complete_goal,
@@ -872,11 +957,13 @@ class Main(QMainWindow):
         name = getattr(self, f'name_{index}')
         goall = getattr(self, f'goal_{index}')
         progress = getattr(self, f"progress_{index}")
+        requirement = getattr(self, f"requirement_{index}")
         timeLeft = getattr(self, f"timeLeft_{index}")
         status = getattr(self, f'status_{index}')
         name.setPalette(palette)
         goall.setPalette(palette)
         progress.setText(progress.text().replace("#ea0000", '#BABABA').replace('#2fe813', '#BABABA').replace('#f5a300', '#BABABA').replace('#00ab00', '#BABABA'))
+        requirement.setPalette(palette)
         timeLeft.setPalette(palette)
         status.setPalette(palette)
         status.setText('EDITING')
@@ -904,33 +991,7 @@ class Main(QMainWindow):
         palette.setBrush(QPalette.Inactive, QPalette.WindowText, brush)
         goal.setPalette(palette)
 
-        if data['goal_amount'] == 'infinite':
-            if 'mid_amount' not in data:
-                data['mid_amount'] = 0
-            outOf = f"{data['mid_amount']}/∞"
-            percentage = '∞'
-        else:
-            calc = 100 / data['goal_amount']
-
-            if data['milestone']:
-                try:
-                    del data['mid_amount']
-                except: pass
-                outOf = f"{data['current_amount']:,}/{data['goal_amount']:,}"
-                percentage = round(data['current_amount'] * calc, 1)
-            else:
-                if 'starting_amount' not in data:
-                    data['starting_amount'] = data['current_amount']
-                if 'mid_amount' not in data:
-                    data['mid_amount'] = 0
-                outOf = f"{data['mid_amount']}/{data['goal_amount']}"
-                percentage = round(data['mid_amount'] * calc, 1)
-
-        progress = getattr(self, f"progress_{index}")
-        progress.setText(f"<html><head/><body><p><span style=\" color:#ea0000;\">{outOf} </span><span style=\" color:#2fe813;\">({percentage}%)</span></p></body></html>")
-
         timeLeft = getattr(self, f"timeLeft_{index}")
-        timeLeft.setText(data['clock'])
         palette = QPalette()
         brush = QBrush(QColor(16, 140, 255))
         brush.setStyle(Qt.SolidPattern)
@@ -973,6 +1034,7 @@ class Main(QMainWindow):
         name = getattr(self, f'name_{index}')
         goal = getattr(self, f'goal_{index}')
         progress = getattr(self, f"progress_{index}")
+        requirement = getattr(self, f"requirement_{index}")
         timeLeft = getattr(self, f"timeLeft_{index}")
         status = getattr(self, f'status_{index}')
         complete_goal = getattr(self, f"complete_goal_{index}")
@@ -984,6 +1046,7 @@ class Main(QMainWindow):
         name.parent().deleteLater(); delattr(self, f"name_{index}")
         goal.parent().deleteLater(); delattr(self, f"goal_{index}")
         progress.parent().deleteLater(); delattr(self, f"progress_{index}")
+        requirement.parent().deleteLater(); delattr(self, f"requirement_{index}")
         timeLeft.parent().deleteLater(); delattr(self, f"timeLeft_{index}")
         status.parent().deleteLater(); delattr(self, f"status_{index}")
         complete_goal.parent().deleteLater(); delattr(self, f"complete_goal_{index}")
@@ -1000,6 +1063,7 @@ class Main(QMainWindow):
         for goal in self.goals:
             self.manager.delete(goal['index'])
         self.manager.end_cache = True
+        self.clock_sync.end_sync = True
         goals = self.cache.get('goals')
         for index in range(len(goals)):
             goals[index]['index'] = index
