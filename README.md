@@ -22,6 +22,7 @@ A desktop application to track anything on the Hypixel Network.
     -   `pyqt5-tools`: The overall Graphical User Interface.
     -   `requests`: Non asyncronous requests
     -   `packaging`: Dealing with versions
+    -   `pypresence`: Discord rich presence
 -   [`Hypixel API Key`]: For fetching stats from Hypixel. Run `/api new` on hypixel.net
 
 ## 📙 Features
