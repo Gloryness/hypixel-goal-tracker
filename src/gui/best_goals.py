@@ -604,10 +604,10 @@ class BestGoals(QDialog):
         self.locals[str(index)] = local_variables
 
     def setup_gamemode_option(self):
-        self.s = Gamemode(self, not_close=False)
+        self.s = Gamemode(self, best_goals=True)
 
     def setup_goal_option(self):
-        self.s = Goal(self, thread=False, not_close=False)
+        self.s = Goal(self, thread=False, best_goals=True)
 
     def unpack_sorting_menu(self):
         sorting = ['Name', 'Started With', 'Ended With', 'Time Taken', 'Completed', 'Milestone']

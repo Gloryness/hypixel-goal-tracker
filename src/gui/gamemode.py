@@ -234,14 +234,12 @@ class GamemodeUI:
         QMetaObject.connectSlotsByName(self.dialog)
 
 class Gamemode(QDialog):
-    def __init__(self, win, not_close=True, parent=None):
+    def __init__(self, win, best_goals=False, parent=None):
         super().__init__(parent)
-        self.not_close = not_close
         self.win = win
+        self.best_goals = best_goals
         self.setModal(True)
         self.setWindowFlags(Qt.WindowCloseButtonHint)
-        if not_close:
-            self.setWindowFlag(Qt.WindowCloseButtonHint, False)
 
         self.ui = GamemodeUI(self)
         self.ui.setupUi()
