@@ -19,7 +19,7 @@ class ThreadManager:
     def load(self, data):
         if len(self.managers) == 0:
             self.api_sync.start_session_sync()
-        self.managers[data['index']] = GoalManager(self.goals)
+        self.managers[data['index']] = GoalManager(self.goals, self.main.clock_sync)
         manager = self.managers[data['index']]
         self.load_thread = threading.Thread(target=lambda: manager.begin_process(data))
         self.load_thread.start()
@@ -48,13 +48,17 @@ class ThreadManager:
             if self.end_cache:
                 break
 
+            if self.main.inside_settings:
+                time.sleep(1.0)
+                continue
+
             if not cache.cached('uuid'):
                 time.sleep(2)
                 continue
 
             cache.store({'goals': goals, 'completed_goals': completed_goals, 'goal_organiser': goal_organiser})
 
-            time.sleep(1)
+            self.main.clock_sync.wait_for_sync()
 
     def sync(self):
         self.load_thread.join(0)
