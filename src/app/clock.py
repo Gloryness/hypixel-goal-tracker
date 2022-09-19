@@ -1,3 +1,49 @@
+from app import __version__
+import threading
+import time
+
+class Waiting:
+    def __init__(self):
+        self.waiting = True
+
+class ClockSync:
+
+    def __init__(self, win):
+        self.win = win
+        self.end_sync = False
+
+        self.queue = []
+
+    def start(self):
+        thread = threading.Thread(target=self.mainloop)
+        thread.start()
+
+    def syncronize(self):
+        for customer in self.queue:
+            customer.waiting = False
+
+    def wait_for_sync(self):
+        customer = Waiting()
+        self.queue.append(customer)
+
+        while customer.waiting:
+            time.sleep(0.0001)
+        self.queue.remove(customer)
+
+    def mainloop(self):
+        time.sleep(0.50)
+
+        while True:
+            self.win.rpcstate.state = f"Active Goals: {len(self.win.goals):,} | Completed Goals: {len(self.win.completed_goals):,}"
+            self.win.rpcstate.large_text = f"v{__version__}"
+
+            time.sleep(1.00)
+
+            self.syncronize()
+
+            if self.end_sync:
+                return
+
 class Clock:
 
     def __init__(self, years=0, months=0, days=0, hours=0, minutes=0, seconds=1):
