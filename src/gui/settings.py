@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QMetaObject, QSize, Qt
 from PyQt5.QtGui import QPixmap, QFont, QIcon, QBrush, QColor, QPalette
-from PyQt5.QtWidgets import QSizePolicy, QFrame, QGridLayout, QLabel, QSpacerItem, QDialog, QToolButton, QMessageBox, QHBoxLayout, QLineEdit, QFileDialog, \
-    QDoubleSpinBox, QGroupBox, QCheckBox, QVBoxLayout
+from PyQt5.QtWidgets import QSizePolicy, QGridLayout, QLabel, QSpacerItem, QDialog, QToolButton, QMessageBox, QHBoxLayout, QLineEdit, \
+    QDoubleSpinBox, QGroupBox, QCheckBox
 
 from app import path, __version__
 from app.cache import Cache
@@ -258,7 +258,33 @@ class ConfigUI:
         spacerItem1 = QSpacerItem(20, 40, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.horizontalLayout_3.addItem(spacerItem1)
 
-        self.gridLayout.addLayout(self.horizontalLayout_3, 3, 0, 1, 2)
+        self.gridLayout.addLayout(self.horizontalLayout_3, 2, 0, 1, 2)
+
+        self.horizontalLayout_4 = QHBoxLayout()
+        self.time_label_2 = QLabel(self.frame)
+        palette = QPalette()
+        brush = QBrush(QColor(255, 255, 255))
+        brush.setStyle(Qt.SolidPattern)
+        palette.setBrush(QPalette.Active, QPalette.WindowText, brush)
+        palette.setBrush(QPalette.Inactive, QPalette.WindowText, brush)
+        self.time_label_2.setPalette(palette)
+        self.time_label_2.setFont(font)
+        self.time_label_2.setTextFormat(Qt.PlainText)
+        self.horizontalLayout_4.addWidget(self.time_label_2)
+
+        self.time_spinbox_2 = QDoubleSpinBox(self.frame)
+        self.time_spinbox_2.setMinimum(0.05)
+        self.time_spinbox_2.setMaximum(1.00)
+        self.time_spinbox_2.setSingleStep(0.05)
+        self.time_spinbox_2.setMinimumWidth(70)
+        self.time_spinbox_2.setMaximumWidth(70)
+        self.time_spinbox_2.setSuffix("s")
+        self.horizontalLayout_4.addWidget(self.time_spinbox_2)
+
+        spacerItem1 = QSpacerItem(20, 40, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalLayout_4.addItem(spacerItem1)
+
+        self.gridLayout.addLayout(self.horizontalLayout_4, 3, 0, 1, 2)
 
         font = QFont()
         font.setFamily("Nirmala UI")
@@ -337,6 +363,7 @@ class Config(QDialog):
         self.ui.api_key_label.setText("API Key: ")
         self.ui.api_key.setPlaceholderText("API Key goes here")
         self.ui.time_label.setText("Amount of time to wait between each request to the Hypixel API: ")
+        self.ui.time_label_2.setText("How long inbetween each refresh of \"Next Hypixel API Request\": ")
         self.ui.percentage_design.setText("Show progress percentage until goal completion")
         self.ui.progress_design.setText("Keep progress design simplistic (if unchecked, effects only modes that contain a levelling system e.g bedwars)")
 
@@ -354,12 +381,14 @@ class Config(QDialog):
         self.original_api_key = "" if "api-key" not in cache else cache['api-key']
         self.original_location = "" if "play-file" not in cache else cache['play-file']
         self.original_time = 1.50 if "request-wait" not in cache else cache['request-wait']
+        self.original_step = 0.05 if "next-request-step" not in cache else cache['next-request-step']
         self.progress_design = True if "progress-design" not in cache else cache['progress-design']
         self.percentage_design = True if "percentage-design" not in cache else cache['percentage-design']
 
         self.ui.username.setText(self.original_username)
         self.ui.api_key.setText(self.original_api_key)
         self.ui.time_spinbox.setValue(self.original_time)
+        self.ui.time_spinbox_2.setValue(self.original_step)
         self.ui.progress_design.setChecked(self.progress_design)
         self.ui.percentage_design.setChecked(self.percentage_design)
 
@@ -391,6 +420,7 @@ class Config(QDialog):
         username = self.ui.username.text().strip()
         api_key = self.ui.api_key.text().strip()
         time = round(self.ui.time_spinbox.value(), 2)
+        step = round(self.ui.time_spinbox_2.value(), 2)
         progress_design = self.ui.progress_design.isChecked()
         percentage_design = self.ui.percentage_design.isChecked()
 
@@ -445,6 +475,10 @@ class Config(QDialog):
                                     f"<span style=\"color: grey\">API Endpoints:</span> <span style=\"color: {'green' if self.main.api_sync.endpoints['player'] else 'red'}\">/player</span> <span style=\"color: {'green' if self.main.api_sync.endpoints['friends'] else 'red'}\">/friends</span>"
                                     "</p></body></html>")
 
+        if step != self.original_step:
+            cache.store({"next-request-step": step})
+            self.main.api_sync.request_step = step
+
         if progress_design != self.progress_design:
             cache.store({"progress-design": progress_design})
             self.main.progress_design = progress_design
@@ -454,3 +488,6 @@ class Config(QDialog):
             self.main.percentage_design = percentage_design
 
         self.close()
+
+    def closeEvent(self, event):
+        self.main.inside_settings = False
