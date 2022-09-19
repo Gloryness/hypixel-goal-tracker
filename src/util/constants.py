@@ -182,26 +182,36 @@ bedwars = [
     {
         'Solo Kills': 'eight_one_kills_bedwars',
         'Solo Wins': 'eight_one_wins_bedwars',
+        'Solo Winstreak': 'eight_one_winstreak',
         'Doubles Kills': 'eight_two_kills_bedwars',
-        'Doubles Wins': 'eight_two_wins_bedwars'
+        'Doubles Wins': 'eight_two_wins_bedwars',
+        'Doubles Winstreak': 'eight_two_winstreak'
     },
     {
         '3v3v3v3 Kills': 'four_three_kills_bedwars',
         '3v3v3v3 Wins': 'four_three_wins_bedwars',
+        '3v3v3v3 Winstreak': 'four_three_winstreak',
         '4v4v4v4 Kills': 'four_four_kills_bedwars',
-        '4v4v4v4 Wins': 'four_four_wins_bedwars'
+        '4v4v4v4 Wins': 'four_four_wins_bedwars',
+        '4v4v4v4 Winstreak': 'four_four_winstreak'
     },
     {
         '4v4 Kills': 'two_four_kills_bedwars',
         '4v4 Wins': 'two_four_wins_bedwars',
+        '4v4 Winstreak': 'two_four_winstreak',
         'Lucky Block 4v4v4v4 Wins': 'four_four_lucky_wins_bedwars',
+        'Lucky Block 4v4v4v4 Winstreak': 'four_four_lucky_winstreak',
         'Castle Kills': 'castle_kills_bedwars',
-        'Castle Wins': 'castle_wins_bedwars'
+        'Castle Wins': 'castle_wins_bedwars',
+        'Castle Winstreak': 'castle_winstreak'
     },
     {
         'Ultime Solo Wins': 'eight_one_ultimate_wins_bedwars',
+        'Ultime Solo Winstreak': 'eight_one_ultimate_winstreak',
         'Ultimate Doubles Wins': 'eight_two_ultimate_wins_bedwars',
-        'Ultimate 4v4v4v4 Wins': 'four_four_ultimate_wins_bedwars'
+        'Ultimate Doubles Winstreak': 'eight_two_ultimate_winstreak',
+        'Ultimate 4v4v4v4 Wins': 'four_four_ultimate_wins_bedwars',
+        'Ultimate 4v4v4v4 Winstreak': 'four_four_ultimate_winstreak'
     }
 ]
 
