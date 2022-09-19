@@ -79,7 +79,6 @@ def getPitLevel(prestige, xp):
 
     multiplier = PRESTIGE_MULTIPLIERS[prestige]['Multiplier']
     level = 0
-    next_ = 0
 
     while xp > 0 and level < 120:
         levelXp = LEVEL_REQUIREMENTS[math.floor(level / 10)] * multiplier
@@ -124,6 +123,8 @@ def getFormattedPitLevel(prestige, level):
         30: lambda n, m: f"&f[&e{n}&f-{m}&f]",
         35: lambda n, m: f"&b[&e{n}&b-{m}&b]",
         40: lambda n, m: f"&1[&e{n}&1-{m}&1]",
+        45: lambda n, m: f"&0[&e{n}&0-{m}&0]",
+        50: lambda n, m: f"&3[&e{n}&3-{m}&3]",
     }
 
     levelColors = {
