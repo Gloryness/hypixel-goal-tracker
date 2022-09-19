@@ -5,16 +5,18 @@ from app.clock import Clock
 from app.cache import Cache
 from util.constants import KNOWN_MANUALS
 from util.determine import DManualSetup
-from util.process import processManuals, processProgress, computeHtml
+from util.process import processManuals, processProgress, convert_to_time
+from util.gamemodes.skywars.swlevel import getSkyWarsExp
 
-from app import convert_to_time
 from datetime import datetime
+import math
 import time
 import os
 
 class GoalManager:
-    def __init__(self, datasets):
+    def __init__(self, datasets, clock_sync):
         self.datasets = datasets
+        self.clock_sync = clock_sync
 
         self.finished = False
         self.deleted = False
@@ -32,7 +34,7 @@ class GoalManager:
         while True:
             if data['status'] == 'EDITING' or data['status'] == 'PAUSED':
                 while True:
-                    if data['status'] in ['COMPLETE', 'INCOMPLETE', 'CONNECTION ERROR', 'RESUMING', 'N/A']:
+                    if data['status'] in ['COMPLETE', 'INCOMPLETE', 'CONNECTION ERROR', 'RESUMING', 'ACTIVE']:
                         break
 
                     if self.deleted:
@@ -49,12 +51,22 @@ class GoalManager:
                     palette.setBrush(QPalette.Inactive, QPalette.WindowText, brush)
                     status.setPalette(palette)
                     status.setText(data['status'])
-                    time.sleep(1.0)
+                    self.clock_sync.wait_for_sync()
                     if data['status'] == 'PAUSED':
                         data['paused_seconds'] += 1
 
             if self.finished or self.deleted:
                 return
+
+            self.clock_sync.wait_for_sync()
+
+            if self.finished or self.deleted:
+                return
+
+            if 'complete_by' in data:
+                date = data['complete_by']
+                a = datetime(date['year'], date['month'], date['day'], date['hour'], date['minute'], date['second'])
+                timeLeft.setToolTip(a.strftime("%A %d %B @ %H:%M:%S"))
 
             if not infiniteTime:
                 second = Clock().fromFormat(data['clock']).inSeconds()
@@ -64,12 +76,15 @@ class GoalManager:
                     break
 
                 clock = Clock().fromSeconds(second).format()
+
+                if self.finished or self.deleted:
+                    return
+
                 timeLeft.setText(clock)
                 data['clock'] = clock
             else:
                 timeLeft.setText(f'∞ ({convert_to_time(data["seconds"])} uptime)')
 
-            time.sleep(1)
             data['seconds'] += 1
 
         self.finished = True
@@ -100,12 +115,14 @@ class GoalManager:
     def manage_process(self, data, main):
         dataset = self.datasets[f'dataset{data["index"]}']
         progress = dataset['progress']
+        requirement = dataset['requirement']
         timeLeft = dataset['timeLeft']
         status = dataset['status']
         complete_goal = dataset['complete_goal']
         edit_goal = dataset['edit_goal']
         toggle_goal = dataset['toggle_goal']
         isInfinite = data['goal_amount'] == 'infinite'
+        infiniteTime = data['clock'] == '∞'
         api = main.api_sync
         exception = 0
 
@@ -115,7 +132,7 @@ class GoalManager:
                 while True:
                     if self.deleted:
                         return
-                    if data['status'] in ['COMPLETE', 'INCOMPLETE', 'CONNECTION ERROR', 'RESUMING', 'N/A']:
+                    if data['status'] in ['COMPLETE', 'INCOMPLETE', 'CONNECTION ERROR', 'RESUMING', 'ACTIVE']:
                         break
                     time.sleep(0.2)
             if self.finished or self.deleted:
@@ -184,12 +201,19 @@ class GoalManager:
                     percentage = '∞'
                     percentage_str = ''
                 else:
-                    calc = 100 / data['goal_amount']
+                    if data['api_goal_name'] == 'levelFormatted':
+                        calc = 100 / getSkyWarsExp(data['goal_amount'])
+                    else:
+                        calc = 100 / data['goal_amount']
 
                     if data['milestone']:
                         data['current_amount'] = current_amount
+                        current = current_amount
+                        if data['api_goal_name'] == 'levelFormatted':
+                            current = getSkyWarsExp(current)
                         outOf = processProgress(data, progress_design=main.progress_design)
-                        percentage = round(current_amount * calc, 2)
+                        percentage = round(current * calc, 2)
+
                         if (current_amount * calc) < 100 and (current_amount * calc) > 99.99:
                             percentage = 99.99
                         if percentage >= 100:
@@ -197,11 +221,15 @@ class GoalManager:
                         percentage_str = f"({percentage})%"
                     else:
                         data['mid_amount'] = current_amount - data['starting_amount']
+                        mid = data['mid_amount']
+                        if data['api_goal_name'] == 'levelFormatted':
+                            mid = getSkyWarsExp(current_amount) - getSkyWarsExp(data['starting_amount'])
                         if data['mid_amount'] < 0:
                             data['starting_amount'] = current_amount
                         data['current_amount'] = current_amount
                         outOf = processProgress(data, progress_design=main.progress_design)
-                        percentage = round(data['mid_amount'] * calc, 2)
+                        percentage = round(mid * calc, 2)
+
                         if (data['mid_amount'] * calc) < 100 and (data['mid_amount'] * calc) > 99.99:
                             percentage = 99.99
                         if percentage >= 100:
@@ -234,10 +262,112 @@ class GoalManager:
                             progress.setText(f"<html><head/><body><p><span style=\"{color}\">{outOf}</span></p></body></html>")
                 except:
                     return
+
+                if 'requirement' not in data:
+                    data['requirement'] = 'minutes'
+
+                if isInfinite or infiniteTime:
+                    palette = QPalette()
+                    brush = QBrush(QColor(255, 0, 0))
+                    brush.setStyle(Qt.SolidPattern)
+                    palette.setBrush(QPalette.Active, QPalette.WindowText, brush)
+                    palette.setBrush(QPalette.Inactive, QPalette.WindowText, brush)
+                    requirement.setPalette(palette)
+                    try: requirement.setText("-")
+                    except: pass
+
+                else:
+                    clock = Clock().fromFormat(data['clock'])
+
+                    palette = QPalette()
+                    brush = QBrush(QColor(49, 243, 181))
+                    brush.setStyle(Qt.SolidPattern)
+                    palette.setBrush(QPalette.Active, QPalette.WindowText, brush)
+                    palette.setBrush(QPalette.Inactive, QPalette.WindowText, brush)
+                    requirement.setPalette(palette)
+
+                    req = "-"
+
+                    if not data['milestone']:
+                        need = data['goal_amount'] - data['mid_amount']
+                    else:
+                        need = data['goal_amount'] - data['starting_amount']
+
+                    if data['requirement'] == 'months':
+                        months = clock.days // 30
+                        if clock.days % 30 >= 15:
+                            months += 1
+
+                        if months == 0:
+                            req = f"{need:,} / month"
+                        else:
+                            if need / months < 2:
+                                req = f"~{round(need / months, 6)} / month"
+                            elif need / months < 1000:
+                                req = f"~{round(need / months, 2)} / month"
+                            else:
+                                req = f"~{math.ceil(need / months):,} / month"
+                    elif data['requirement'] == "days":
+                        days = clock.days
+                        if clock.hours >= 12:
+                            days += 1
+
+                        if days == 0:
+                            req = f"{need:,} / day"
+                        else:
+                            if need / days < 2:
+                                req = f"~{round(need / days, 6)} / day"
+                            elif need / days < 1000:
+                                req = f"~{round(need / days, 2)} / day"
+                            else:
+                                req = f"~{math.ceil(need / days):,} / day"
+                    elif data['requirement'] == "hours":
+                        hours = clock.hours + (clock.days * 24)
+                        if clock.minutes >= 30:
+                            hours += 1
+
+                        if hours == 0:
+                            req = f"{need:,} / hour"
+                        else:
+                            if need / hours < 2:
+                                req = f"~{round(need / hours, 6)} / hour"
+                            elif need / hours < 1000:
+                                req = f"~{round(need / hours, 2)} / hour"
+                            else:
+                                req = f"~{math.ceil(need / hours):,} / hour"
+                    elif data['requirement'] == "minutes":
+                        minutes = clock.minutes + (clock.days * 1440) + (clock.hours * 60)
+
+                        if minutes == 0:
+                            req = f"{need:,} / minute"
+                        else:
+                            if need / minutes < 2:
+                                req = f"~{round(need / minutes, 6)} / minute"
+                            elif need / minutes < 1000:
+                                req = f"~{round(need / minutes, 2)} / minute"
+                            else:
+                                req = f"~{math.ceil(need / minutes):,} / minute"
+                    elif data['requirement'] == "seconds":
+                        seconds = clock.seconds + (clock.days * 86400) + (clock.hours * 3600) + (clock.minutes * 60)
+
+                        if seconds == 0:
+                            req = f"{need:,} / second"
+                        else:
+                            if need / seconds < 2:
+                                req = f"~{round(need / seconds, 6)} / second"
+                            elif need / seconds < 1000:
+                                req = f"~{round(need / seconds, 2)} / second"
+                            else:
+                                req = f"~{math.ceil(need / seconds):,} / second"
+
+                    try: requirement.setText(req)
+                    except: pass
+
+
                 if isInfinite:
                     if data['status'] != 'PAUSED' and data['status'] != 'EDITING' and data['status'] != 'FAILED' and data['status'] != 'COMPLETE':
-                        data['status'] = 'N/A'
-                        status.setText("N/A")
+                        data['status'] = 'ACTIVE'
+                        status.setText("ACTIVE")
                         palette = QPalette()
                         brush = QBrush(QColor(0, 171, 0))
                         brush.setStyle(Qt.SolidPattern)
@@ -245,7 +375,8 @@ class GoalManager:
                         palette.setBrush(QPalette.Inactive, QPalette.WindowText, brush)
                         status.setPalette(palette)
                     if data['status'] != 'FAILED' and data['status'] != 'COMPLETE':
-                        toggle_goal.setDisabled(False)
+                        if 'complete_by' not in data:
+                            toggle_goal.setDisabled(False)
                         complete_goal.setDisabled(True)
                 else:
                     if (data['milestone'] and (current_amount >= data['goal_amount'])) or \
@@ -274,7 +405,12 @@ class GoalManager:
                             palette.setBrush(QPalette.Active, QPalette.WindowText, brush)
                             palette.setBrush(QPalette.Inactive, QPalette.WindowText, brush)
                             status.setPalette(palette)
+
+                            if 'complete_by' in data:
+                                if len(data['clock']) == 5 and data['clock'].startswith("0m "):
+                                    edit_goal.setDisabled(True)
                         if data['status'] != 'FAILED' and data['status'] != 'COMPLETE':
-                            toggle_goal.setDisabled(False)
+                            if 'complete_by' not in data:
+                                toggle_goal.setDisabled(False)
                             complete_goal.setDisabled(True)
-            time.sleep(1.2)
+            self.clock_sync.wait_for_sync()
