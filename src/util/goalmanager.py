@@ -67,6 +67,8 @@ class GoalManager:
                 date = data['complete_by']
                 a = datetime(date['year'], date['month'], date['day'], date['hour'], date['minute'], date['second'])
                 timeLeft.setToolTip(a.strftime("%A %d %B @ %H:%M:%S"))
+            else:
+                timeLeft.setToolTip("")
 
             if not infiniteTime:
                 second = Clock().fromFormat(data['clock']).inSeconds()
@@ -307,6 +309,20 @@ class GoalManager:
                                 req = f"~{round(need / months, 2)} / month"
                             else:
                                 req = f"~{math.ceil(need / months):,} / month"
+                    elif data['requirement'] == 'weeks':
+                        weeks = clock.days // 7
+                        if clock.days % 7 >= 4:
+                            weeks += 1
+
+                        if weeks == 0:
+                            req = f"{need:,} / week"
+                        else:
+                            if need / weeks < 2:
+                                req = f"~{round(need / weeks, 6)} / week"
+                            elif need / weeks < 1000:
+                                req = f"~{round(need / weeks, 2)} / week"
+                            else:
+                                req = f"~{math.ceil(need / weeks):,} / week"
                     elif data['requirement'] == "days":
                         days = clock.days
                         if clock.hours >= 12:

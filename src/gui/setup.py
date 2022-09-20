@@ -329,7 +329,7 @@ class SetupUI:
         self.requirement_label.setText("<html><head/><body><p><span style=\" color:#aaff00;\">Show live goal requirement in...</span></p></body></html>")
 
         self.requirement = QComboBox(self.dialog)
-        self.requirement.addItems(["months", "days", "hours", "minutes", "seconds"])
+        self.requirement.addItems(["months", "weeks", "days", "hours", "minutes", "seconds"])
         self.requirement.setCurrentIndex(3)
 
         self.requirement_layout.addWidget(self.requirement_label)
